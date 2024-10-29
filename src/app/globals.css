@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+/* In your global CSS file */
+@import url('https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.css'); /* Adjust the version as necessary */
+
