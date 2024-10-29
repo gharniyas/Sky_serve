@@ -111,7 +111,6 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
 
     marker._id = id;
 
-    // Create a card to display lat and lng
     const infoCard = document.createElement("div");
     infoCard.innerHTML = `<p>Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(
       4
@@ -124,7 +123,6 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
     infoCard.style.display = "none";
     marker.getElement().appendChild(infoCard);
 
-    // Create a delete button
     const deleteButton = document.createElement("button");
     deleteButton.innerHTML = "🗑️";
     deleteButton.style.cursor = "pointer";
@@ -135,7 +133,6 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
     deleteButton.style.borderRadius = "3px";
     deleteButton.style.display = "none";
 
-    // Show the info card and delete button on hover
     marker.getElement().addEventListener("mouseenter", () => {
       infoCard.style.display = "block";
       deleteButton.style.display = "block";
@@ -144,7 +141,6 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
       marker.getElement().appendChild(deleteButton);
     });
 
-    // Hide the info card and delete button when not hovering
     marker.getElement().addEventListener("mouseleave", () => {
       infoCard.style.display = "none";
       deleteButton.style.display = "none";
@@ -153,13 +149,11 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
       }
     });
 
-    // Handle delete marker logic
     deleteButton.addEventListener("click", (e) => {
       e.stopPropagation();
       handleDeleteMarker(marker, id);
     });
 
-    // Add click event for distance calculation
     marker.getElement().addEventListener("click", () => {
       const clickedMarker = { lat, lng };
       setSelectedMarkers((prevSelected) => {
