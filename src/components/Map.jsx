@@ -269,7 +269,7 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
 
   return (
     <div className="relative">
-      <div ref={mapContainer} className="h-[650px]"></div>
+      <div ref={mapContainer} className="h-[500px]"></div>
 
       {geoJsonInfo && (
         <div className="absolute bottom-10 left-2 p-2 bg-white rounded-md shadow-md">
