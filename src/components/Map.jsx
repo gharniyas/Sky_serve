@@ -7,6 +7,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { fetchMarkers } from "@/queries";
 import { useCookies } from "react-cookie";
+import MapboxDraw from "@mapbox/mapbox-gl-draw";
+import * as turf from "@turf/turf";
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_API_KEY;
 
 const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
@@ -209,10 +211,18 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
   useEffect(() => {
     if (!map.current || !geoJsonData) return;
 
+    const draw = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {
+        polygon: true,
+        line_string: true,
+        trash: true,
+      },
+    });
+    map.current.addControl(draw);
+
     map.current.on("load", () => {
-      if (map.current.getSource("geojson-data")) {
-        map.current.getSource("geojson-data").setData(geoJsonData);
-      } else {
+      if (!map.current.getSource("geojson-data")) {
         map.current.addSource("geojson-data", {
           type: "geojson",
           data: geoJsonData,
@@ -225,7 +235,7 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
           filter: ["==", "$type", "LineString"],
           paint: {
             "line-width": 3,
-            "line-color": "#00FF00",
+            "line-color": "#3bb2d0",
           },
         });
 
@@ -235,36 +245,54 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
           source: "geojson-data",
           filter: ["==", "$type", "Polygon"],
           paint: {
-            "fill-color": "#3bb2d0",
-            "fill-opacity": 0.5,
+            "fill-opacity": 0,
           },
         });
-
-        map.current.on("mouseenter", "lines", (e) => {
-          map.current.getCanvas().style.cursor = "pointer";
-          const coordinates = e.features[0].geometry.coordinates;
-          const type = e.features[0].geometry.type;
-          setGeoJsonInfo({ type, coordinates });
-        });
-
-        map.current.on("mouseenter", "polygons", (e) => {
-          map.current.getCanvas().style.cursor = "pointer";
-          const coordinates = e.features[0].geometry.coordinates;
-          const type = e.features[0].geometry.type;
-          setGeoJsonInfo({ type, coordinates });
-        });
-
-        map.current.on("mouseleave", "lines", () => {
-          map.current.getCanvas().style.cursor = "";
-          setGeoJsonInfo(null);
-        });
-
-        map.current.on("mouseleave", "polygons", () => {
-          map.current.getCanvas().style.cursor = "";
-          setGeoJsonInfo(null);
-        });
       }
+
+      draw.set({ type: "FeatureCollection", features: geoJsonData.features });
+
+      map.current.on("draw.create", updateGeoJsonData);
+      map.current.on("draw.update", updateGeoJsonData);
+      map.current.on("draw.delete", updateGeoJsonData);
     });
+
+    const updateGeoJsonData = () => {
+      const data = draw.getAll();
+
+      const filteredFeatures = [];
+
+      let latestLine = null;
+
+      data.features.forEach((feature) => {
+        if (feature.geometry.type === "LineString") {
+          latestLine = feature;
+        } else {
+          filteredFeatures.push(feature);
+        }
+      });
+
+      if (latestLine) {
+        filteredFeatures.push(latestLine);
+      }
+
+      const updatedData = {
+        type: "FeatureCollection",
+        features: filteredFeatures,
+      };
+      setGeoJsonData(updatedData);
+      setGeoJsonInfo(null);
+
+      if (map.current.getSource("geojson-data")) {
+        map.current.getSource("geojson-data").setData(updatedData);
+      }
+    };
+
+    return () => {
+      map.current.off("draw.create", updateGeoJsonData);
+      map.current.off("draw.update", updateGeoJsonData);
+      map.current.off("draw.delete", updateGeoJsonData);
+    };
   }, [geoJsonData]);
 
   return (
