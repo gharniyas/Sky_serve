@@ -9,6 +9,7 @@ const Header = (refetch) => {
   const handleLogout = () => {
     removeCookie("username");
     removeCookie("token");
+    removeCookie("userId");
   };
   return (
     <div className="flex items-center justify-between px-2 py-2">

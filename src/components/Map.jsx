@@ -280,7 +280,10 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
 
       {latLng1 && latLng2 && distance !== null && (
         <div className="absolute bottom-12 left-2 p-2 bg-white rounded-md shadow-md">
-          <p>Distance between markers: {distance.toFixed(2)} km</p>
+          <p>
+            Distance between markers: {distance.toFixed(2)} km /{" "}
+            {distance.toFixed(2) * 0.621} miles
+          </p>
           <button
             onClick={resetDistanceCalculation}
             className="mt-2 px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
