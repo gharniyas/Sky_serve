@@ -3,20 +3,25 @@ import { useMutation } from "@tanstack/react-query";
 import UserPassword from "@/components/UserPassword";
 import { useRouter } from "next/navigation";
 import { useCookies } from "react-cookie";
+import { useState } from "react";
 import axios from "axios";
+
 const Login = () => {
   const router = useRouter();
   const [cookies, setCookie] = useCookies([]);
+  const [loading, setLoading] = useState(false);
+
   const mutation = useMutation({
     mutationFn: async (data) => {
       const response = await axios.post("/api/login", data);
       return response.data;
     },
     onSuccess: (data) => {
-      if (data.success == false) {
+      if (data.success === false) {
         alert(data.message);
       }
-      if (data.success == true) {
+      if (data.success === true) {
+        setLoading(true);
         setCookie("token", data.token, { maxAge: 60 * 60 * 60 });
         setCookie("username", data.datas.username, { maxAge: 60 * 60 * 60 });
         setCookie("userId", data.datas._id.toString());
@@ -35,8 +40,7 @@ const Login = () => {
   return (
     <>
       <h2 className="mb-4 text-2xl font-bold text-center">Login</h2>
-
-      <UserPassword type={"Login"} Submit={Submit} />
+      <UserPassword type={"Login"} Submit={Submit} loading={loading} />
     </>
   );
 };

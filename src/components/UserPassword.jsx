@@ -3,7 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import { Input } from "antd";
 import Link from "next/link";
 
-const UserPassword = ({ type, Submit }) => {
+const UserPassword = ({ type, Submit, loading }) => {
   const {
     register,
     handleSubmit,
@@ -84,8 +84,9 @@ const UserPassword = ({ type, Submit }) => {
             <button
               type="submit"
               className="w-full p-2 mt-4 font-bold text-white bg-blue-500 rounded hover:bg-blue-600"
+              disabled={loading}
             >
-              {type}
+              {loading ? "Loading..." : type}
             </button>
           </form>
           <div className="p-4">
