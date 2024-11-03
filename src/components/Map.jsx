@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { fetchMarkers } from "@/queries";
 import { useCookies } from "react-cookie";
+import MapboxDraw from "@mapbox/mapbox-gl-draw";
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_API_KEY;
 
 const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
@@ -104,12 +105,35 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
     });
   }, [latitude, longitude, zoom]);
 
+  const updateMarkerCoordinates = (id, lat, lng) => {
+    axios
+      .put("/api/edit_markers", {
+        id,
+        updatedData: { Latitude: lat, Longitude: lng },
+      })
+      .then((response) => {
+        if (response.data.success) {
+          console.log("Marker updated successfully in the database.");
+        } else {
+          console.error("Failed to update marker:", response.data.message);
+        }
+      })
+      .catch((error) => {
+        console.error("Update error:", error);
+      });
+  };
+
   const createMarker = (lng, lat, id) => {
     const marker = new mapboxgl.Marker({ draggable: true })
       .setLngLat([lng, lat])
       .addTo(map.current);
 
     marker._id = id;
+
+    marker.on("dragend", () => {
+      const { lng: newLng, lat: newLat } = marker.getLngLat();
+      updateMarkerCoordinates(id, newLat, newLng);
+    });
 
     const infoCard = document.createElement("div");
     infoCard.innerHTML = `<p>Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(
@@ -209,90 +233,124 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
   useEffect(() => {
     if (!map.current || !geoJsonData) return;
 
-    map.current.on("load", () => {
-      if (map.current.getSource("geojson-data")) {
-        map.current.getSource("geojson-data").setData(geoJsonData);
-      } else {
-        map.current.addSource("geojson-data", {
+    const draw = new MapboxDraw({
+      displayControlsDefault: false,
+      controls: {
+        polygon: true,
+        line_string: true,
+        trash: true,
+      },
+    });
+
+    map.current.addControl(draw);
+
+    const sourceId = `geojson-data-${Date.now()}`;
+
+    const updateGeoJsonData = () => {
+      const data = draw.getAll();
+      const filteredFeatures = [];
+      let latestLine = null;
+
+      data.features.forEach((feature) => {
+        if (feature.geometry.type === "LineString") {
+          latestLine = feature;
+        } else {
+          filteredFeatures.push(feature);
+        }
+      });
+
+      if (latestLine) {
+        filteredFeatures.push(latestLine);
+      }
+
+      const updatedData = {
+        type: "FeatureCollection",
+        features: filteredFeatures,
+      };
+
+      if (map.current.getSource(sourceId)) {
+        map.current.getSource(sourceId).setData(updatedData);
+      }
+    };
+
+    const addSourceAndLayers = () => {
+      if (!map.current.getSource(sourceId)) {
+        map.current.addSource(sourceId, {
           type: "geojson",
           data: geoJsonData,
         });
+      }
 
+      if (!map.current.getLayer("lines")) {
         map.current.addLayer({
           id: "lines",
           type: "line",
-          source: "geojson-data",
+          source: sourceId,
           filter: ["==", "$type", "LineString"],
           paint: {
             "line-width": 3,
-            "line-color": "#00FF00",
+            "line-color": "#3bb2d0",
           },
         });
+      }
 
+      if (!map.current.getLayer("polygons")) {
         map.current.addLayer({
           id: "polygons",
           type: "fill",
-          source: "geojson-data",
+          source: sourceId,
           filter: ["==", "$type", "Polygon"],
           paint: {
-            "fill-color": "#3bb2d0",
             "fill-opacity": 0.5,
+            "fill-color": "#888",
           },
         });
-
-        map.current.on("mouseenter", "lines", (e) => {
-          map.current.getCanvas().style.cursor = "pointer";
-          const coordinates = e.features[0].geometry.coordinates;
-          const type = e.features[0].geometry.type;
-          setGeoJsonInfo({ type, coordinates });
-        });
-
-        map.current.on("mouseenter", "polygons", (e) => {
-          map.current.getCanvas().style.cursor = "pointer";
-          const coordinates = e.features[0].geometry.coordinates;
-          const type = e.features[0].geometry.type;
-          setGeoJsonInfo({ type, coordinates });
-        });
-
-        map.current.on("mouseleave", "lines", () => {
-          map.current.getCanvas().style.cursor = "";
-          setGeoJsonInfo(null);
-        });
-
-        map.current.on("mouseleave", "polygons", () => {
-          map.current.getCanvas().style.cursor = "";
-          setGeoJsonInfo(null);
-        });
       }
+    };
+
+    map.current.on("load", () => {
+      addSourceAndLayers();
+
+      draw.set({ type: "FeatureCollection", features: geoJsonData.features });
+
+      map.current.on("draw.create", updateGeoJsonData);
+      map.current.on("draw.update", updateGeoJsonData);
+      map.current.on("draw.delete", updateGeoJsonData);
     });
+
+    return () => {
+      map.current.off("draw.create", updateGeoJsonData);
+      map.current.off("draw.update", updateGeoJsonData);
+      map.current.off("draw.delete", updateGeoJsonData);
+    };
   }, [geoJsonData]);
 
   return (
-    <div className="relative">
-      <div ref={mapContainer} className="h-[550px]"></div>
-
-      {geoJsonInfo && (
-        <div className="absolute bottom-10 left-2 p-2 bg-white rounded-md shadow-md">
-          <p>Type: {geoJsonInfo.type}</p>
-          <p>Coordinates: {JSON.stringify(geoJsonInfo.coordinates)}</p>
-        </div>
-      )}
-
-      {latLng1 && latLng2 && distance !== null && (
-        <div className="absolute bottom-12 left-2 p-2 bg-white rounded-md shadow-md">
+    <>
+      <div ref={mapContainer} className="map-container h-screen w-screen" />
+      {latLng1 && latLng2 && (
+        <div>
           <p>
-            Distance between markers: {distance.toFixed(2)} km /{" "}
-            {distance.toFixed(2) * 0.621} miles
+            LatLng 1: {latLng1.lat.toFixed(4)}, {latLng1.lng.toFixed(4)}
           </p>
-          <button
-            onClick={resetDistanceCalculation}
-            className="mt-2 px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-          >
-            Reset
-          </button>
+          <p>
+            LatLng 2: {latLng2.lat.toFixed(4)}, {latLng2.lng.toFixed(4)}
+          </p>
+          <p>Distance: {distance ? distance.toFixed(2) : "N/A"} km</p>
+          <button onClick={resetDistanceCalculation}>Reset</button>
         </div>
       )}
-    </div>
+      {geoJsonInfo && (
+        <div className="info-container">
+          <h3>GeoJSON Info:</h3>
+          {Object.entries(geoJsonInfo).map(([key, value]) => (
+            <p key={key}>
+              {key}: {value}
+            </p>
+          ))}
+        </div>
+      )}
+    </>
   );
 };
 
