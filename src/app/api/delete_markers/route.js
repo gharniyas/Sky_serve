@@ -1,11 +1,10 @@
 import clientPromise from "@/lib/mongodb";
 import { NextResponse } from "next/server";
-import { ObjectId } from "mongodb"; // Import ObjectId to handle MongoDB IDs
+import { ObjectId } from "mongodb";
 
 export async function DELETE(req) {
   try {
-    // Parse the request JSON body to get the marker ID
-    const { id } = await req.json(); // Expecting { "id": "marker_id" } in request body
+    const { id } = await req.json();
 
     if (!id) {
       return NextResponse.json({
@@ -17,7 +16,6 @@ export async function DELETE(req) {
     const client = await clientPromise;
     const db = client.db("Geo-data");
 
-    // Delete the marker by its ObjectId
     const result = await db
       .collection("markers")
       .deleteOne({ _id: new ObjectId(id) });

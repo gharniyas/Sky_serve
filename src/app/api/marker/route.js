@@ -1,4 +1,3 @@
-// API Route Code
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 const jwt = require("jsonwebtoken");
@@ -17,7 +16,7 @@ export async function POST(request) {
 
     const body = await request.json();
     const markers = Array.isArray(body.docs) ? body.docs : [];
-    console.log("Markers to be inserted:", markers); // Log the data being inserted
+    console.log("Markers to be inserted:", markers);
     const dataWithUserId = markers.map((item) => ({
       ...item,
       userId,
@@ -25,7 +24,7 @@ export async function POST(request) {
     const result = await db.collection("markers").insertMany(dataWithUserId);
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
-    console.error("Server Error:", error.message); // Log the full error
+    console.error("Server Error:", error.message);
     return NextResponse.json({
       success: false,
       message: error.message || "An error occurred",

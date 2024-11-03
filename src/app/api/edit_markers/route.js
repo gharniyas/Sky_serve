@@ -1,4 +1,3 @@
-// pages/api/edit_markers.js
 import clientPromise from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
