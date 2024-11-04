@@ -4,10 +4,8 @@ import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { useCookies } from "react-cookie";
-import { Button } from "antd";
-import { MdOutlineDriveFolderUpload } from "react-icons/md";
 
-const YourComponent = ({ refetch }) => {
+const FileUploadForm = ({ refetch }) => {
   const [cookies] = useCookies();
   const { register, handleSubmit, setValue } = useForm();
 
@@ -45,22 +43,17 @@ const YourComponent = ({ refetch }) => {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="p-4 flex gap-4 items-center"
-    >
-      <MdOutlineDriveFolderUpload size={25} />
-      <label>Upload JSON File: </label>
-      <input type="file" accept=".json" onChange={handleFileChange} />
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <label>
+        Upload JSON File:
+        <input type="file" accept=".json" onChange={handleFileChange} />
+      </label>
 
       <input type="hidden" {...register("jsonData")} />
-      <Button
-        className="border border-black bg-white"
-        type="submit"
-        disabled={mutation.isLoading}
-      >
+
+      <button type="submit" disabled={mutation.isLoading}>
         {mutation.isLoading ? "Uploading..." : "Submit"}
-      </Button>
+      </button>
 
       {mutation.isError && <p>Error occurred: {mutation.error.message}</p>}
       {mutation.isSuccess && <p>Data uploaded successfully!</p>}
@@ -68,4 +61,4 @@ const YourComponent = ({ refetch }) => {
   );
 };
 
-export default YourComponent;
+export default FileUploadForm;

@@ -148,7 +148,7 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
     marker.getElement().appendChild(infoCard);
 
     const deleteButton = document.createElement("button");
-    deleteButton.innerHTML = "🗑️";
+    deleteButton.innerHTML = "🗑";
     deleteButton.style.cursor = "pointer";
     deleteButton.style.position = "absolute";
     deleteButton.style.background = "white";
@@ -231,7 +231,7 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
   }, [markers_data]);
 
   useEffect(() => {
-    if (!map.current || !geoJsonData) return;
+    if (!map.current) return; // Return if map is not initialized
 
     const draw = new MapboxDraw({
       displayControlsDefault: false,
@@ -244,29 +244,65 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
 
     map.current.addControl(draw);
 
-    const sourceId = `geojson-data-${Date.now()}`;
+    if (geoJsonData.features.length >= 1) {
+      function extractPolygonCoordinates(geoJson) {
+        const polygonCoordinates = [];
+        for (let feature of geoJson.features) {
+          if (feature.geometry.type === "Polygon") {
+            polygonCoordinates.push(feature.geometry.coordinates);
+          }
+        }
+        return polygonCoordinates;
+      }
+
+      const coordinat = extractPolygonCoordinates(geoJsonData);
+      const coordinates = coordinat[0][0];
+      console.log(coordinates);
+
+      const Coordinates = [
+        [
+          [coordinates[0][0], coordinates[0][1]],
+          [coordinates[1][0], coordinates[1][1]],
+          [coordinates[2][0], coordinates[2][1]],
+          [coordinates[3][0], coordinates[3][1]],
+          [coordinates[0][0], coordinates[0][1]],
+        ],
+      ];
+      draw.add({
+        type: "Feature",
+        geometry: {
+          type: "Polygon",
+          coordinates: Coordinates,
+        },
+      });
+    } else {
+      console.log("Feature or geometry is undefined");
+    }
+
+    // Function to add initial polygons from geoJsonData to MapboxDraw
+    const initializeDrawData = () => {
+      if (geoJsonData && geoJsonData.features) {
+        geoJsonData.features.forEach((feature) => {
+          // Add each feature to the draw control
+          draw.add(feature);
+        });
+      }
+    };
 
     const updateGeoJsonData = () => {
       const data = draw.getAll();
-      const filteredFeatures = [];
-      let latestLine = null;
-
-      data.features.forEach((feature) => {
-        if (feature.geometry.type === "LineString") {
-          latestLine = feature;
-        } else {
-          filteredFeatures.push(feature);
-        }
-      });
-
-      if (latestLine) {
-        filteredFeatures.push(latestLine);
-      }
+      const filteredFeatures = data.features.filter(
+        (feature) =>
+          feature.geometry.type === "Polygon" ||
+          feature.geometry.type === "LineString"
+      );
 
       const updatedData = {
         type: "FeatureCollection",
         features: filteredFeatures,
       };
+
+      const sourceId = `geojson - data - source`;
 
       if (map.current.getSource(sourceId)) {
         map.current.getSource(sourceId).setData(updatedData);
@@ -274,6 +310,8 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
     };
 
     const addSourceAndLayers = () => {
+      const sourceId = `geojson - data - source`;
+
       if (!map.current.getSource(sourceId)) {
         map.current.addSource(sourceId, {
           type: "geojson",
@@ -294,24 +332,24 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
         });
       }
 
-      if (!map.current.getLayer("polygons")) {
-        map.current.addLayer({
-          id: "polygons",
-          type: "fill",
-          source: sourceId,
-          filter: ["==", "$type", "Polygon"],
-          paint: {
-            "fill-opacity": 0.5,
-            "fill-color": "#888",
-          },
-        });
-      }
+      // if (!map.current.getLayer("polygons")) {
+      //     map.current.addLayer({
+      //         id: "polygons",
+      //         type: "fill",
+      //         source: sourceId,
+      //         filter: ["==", "$type", "Polygon"],
+      //         paint: {
+      //             "fill-opacity": 0.5,
+      //             "fill-color": "#888",
+      //         },
+      //     });
+      // }
     };
 
+    // On map load, add layers and initialize draw data
     map.current.on("load", () => {
       addSourceAndLayers();
-
-      draw.set({ type: "FeatureCollection", features: geoJsonData.features });
+      initializeDrawData(); // Draw initial polygons from geoJsonData
 
       map.current.on("draw.create", updateGeoJsonData);
       map.current.on("draw.update", updateGeoJsonData);
@@ -322,8 +360,9 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
       map.current.off("draw.create", updateGeoJsonData);
       map.current.off("draw.update", updateGeoJsonData);
       map.current.off("draw.delete", updateGeoJsonData);
+      if (draw) map.current.removeControl(draw);
     };
-  }, [geoJsonData]);
+  }, [geoJsonData]); // Re-run if geoJsonData updates
 
   return (
     <>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
+
 const secretKey = process.env.SECRET_KEY;
 
 export async function POST(request) {
@@ -8,7 +9,7 @@ export async function POST(request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
     const authHeader = request.headers.get("authorization");
-    const accessToken = authHeader && authHeader.split(" ")[1];
+    const accessToken = authHeader?.split(" ")[1];
 
     if (!accessToken) {
       return NextResponse.json(
