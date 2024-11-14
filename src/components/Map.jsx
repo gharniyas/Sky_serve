@@ -368,10 +368,9 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
       setGeoJsonInfo(null);
     });
 
-    // On map load, add layers and initialize draw data
     map.current.on("load", () => {
       addSourceAndLayers();
-      initializeDrawData(); // Draw initial polygons from geoJsonData
+      initializeDrawData();
 
       map.current.on("draw.create", updateGeoJsonData);
       map.current.on("draw.update", updateGeoJsonData);
@@ -384,7 +383,7 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
       map.current.off("draw.delete", updateGeoJsonData);
       if (draw) map.current.removeControl(draw);
     };
-  }, [geoJsonData]); // Re-run if geoJsonData updates
+  }, [geoJsonData]);
 
   return (
     <div className="relative">
