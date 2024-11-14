@@ -21,7 +21,7 @@ const Login = () => {
         alert(data.message);
       }
       if (data.success === true) {
-        setLoading(true);
+        // setLoading(true);
         setCookie("token", data.token, { maxAge: 60 * 60 * 60 });
         setCookie("username", data.datas.username, { maxAge: 60 * 60 * 60 });
         setCookie("userId", data.datas._id.toString());
@@ -35,6 +35,7 @@ const Login = () => {
 
   const Submit = (data) => {
     mutation.mutate(data);
+    setLoading(true);
   };
 
   return (

@@ -160,8 +160,8 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
     marker.getElement().addEventListener("mouseenter", () => {
       infoCard.style.display = "block";
       deleteButton.style.display = "block";
-      deleteButton.style.left = "-20px";
-      deleteButton.style.top = "-20px";
+      deleteButton.style.left = "-10px";
+      deleteButton.style.top = "-10px";
       marker.getElement().appendChild(deleteButton);
     });
 
@@ -231,7 +231,7 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
   }, [markers_data]);
 
   useEffect(() => {
-    if (!map.current) return; // Return if map is not initialized
+    if (!map.current) return;
 
     const draw = new MapboxDraw({
       displayControlsDefault: false,
@@ -279,11 +279,9 @@ const Map = ({ latitude, longitude, zoom, geoJsonData }) => {
       console.log("Feature or geometry is undefined");
     }
 
-    // Function to add initial polygons from geoJsonData to MapboxDraw
     const initializeDrawData = () => {
       if (geoJsonData && geoJsonData.features) {
         geoJsonData.features.forEach((feature) => {
-          // Add each feature to the draw control
           draw.add(feature);
         });
       }
